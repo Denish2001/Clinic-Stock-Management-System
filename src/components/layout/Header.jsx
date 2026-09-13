@@ -1,4 +1,4 @@
-import { useAuth } from '../../hooks/UseAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 export function Header() {
   const { user, logout } = useAuth();
