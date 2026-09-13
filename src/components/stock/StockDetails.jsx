@@ -21,7 +21,8 @@ export function StockDetails({ id }) {
   };
 
   if (isLoading) return <LoadingState message="Loading product details..." />;
-  if (error) return <ErrorState message="Failed to load product" onRetry={refetch} />;
+  if (error)
+    return <ErrorState message="Failed to load product" onRetry={refetch} />;
   if (!product) return <ErrorState message="Product not found" />;
 
   return (

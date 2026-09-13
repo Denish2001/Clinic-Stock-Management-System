@@ -1,13 +1,11 @@
 import axios from 'axios'; // axios is a tool for making http requests instead of using fetch we use axios eg fetch('https://dummyjson.com/products')
 
-
 const API_BASE = 'https://dummyjson.com'; //simply stores the address of the API
 
 export const apiClient = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 }); //custom Axios instance, so that later you can write apiClient.get('./products') instead of axios.get('https://dummyjson.com/products')
-
 
 // Request interceptor: add token, inteceptors get to look at requsts before they are sent
 apiClient.interceptors.request.use(
@@ -22,7 +20,6 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error) //"Something went wrong while preparing the request. Pass the error along."
 );
-
 
 // Response interceptor: token refresh
 
@@ -44,8 +41,9 @@ const processQueue = (error, token = null) => {
 // Response interceptor: token refresh incase of error
 apiClient.interceptors.response.use(
   (response) => response, //If the request succeeds, just pass the data through normally
-  async (error) => { //If the server sends back an error catch it instead of crashing the app
-    const originalRequest = error.config; //When an Axios request fails, Axios automatically bundles up a "blueprint" or receipt of that request and stores it inside error.config. 
+  async (error) => {
+    //If the server sends back an error catch it instead of crashing the app
+    const originalRequest = error.config; //When an Axios request fails, Axios automatically bundles up a "blueprint" or receipt of that request and stores it inside error.config.
     //This receipt contains everything: the URL you tried to visit (e.g., /user), whether it was a GET or POST, the headers you sent, and any data attached.
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -82,15 +80,13 @@ apiClient.interceptors.response.use(
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
-      } 
-      catch (refreshError) {
+      } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         window.location.href = '/login';
         return Promise.reject(refreshError);
-      } 
-      finally {
+      } finally {
         isRefreshing = false;
       }
     }

@@ -15,7 +15,9 @@ export function StockRow({ product }) {
       <div className="stock-row__category">{product.category}</div>
       <div className="stock-row__price">${product.price.toFixed(2)}</div>
       <div className={`stock-row__stock ${stockClass}`}>{product.stock}</div>
-      <div className="stock-row__link" aria-hidden="true">View →</div>
+      <div className="stock-row__link" aria-hidden="true">
+        View →
+      </div>
     </Link>
   );
 }
