@@ -2,8 +2,6 @@
 
 A stock console for a clinic's supplies team, built against the [DummyJSON](https://dummyjson.com/docs) API as part of the Savannah Informatics Web Engineer assessment.
 
-> **Fill-in-required:** anything wrapped in `[ ... ]` below needs a real value from your actual project before you submit. Search this file for `[` to find every spot.
-
 - **Live app:** `[https://clinic-stock-console.netlify.app]`
 - **Repo:** `[https://github.com/Denish2001/Clinic-Stock-Management-System]`
 
@@ -165,8 +163,6 @@ DummyJSON is a general-purpose product API, not a real inventory system: no conc
 
 ## 4. AI Reflection
 
-> Answer honestly and specifically — this section is scored on process, not polish. Don't let AI write this for you.
-
 1. **What did you use AI for, per section?**
    - **Section 1 (Design):** wrote the design myself first, then used AI to explain jargon I wasn't sure of and to brainstorm and pressure-test approaches. Where AI proposed a better approach than my first draft, I adopted it — but the initial design and the decision log were mine before any AI input.
    - **Section 2 (Build):** used AI for implementation help — scaffolding, and for fixing errors as they came up during the build.
@@ -198,7 +194,7 @@ yarn install
 yarn dev
 ```
 
-App runs at `http://localhost:5173` (Vite default). Sign in with any DummyJSON test user, e.g. `emilys` / `emilyspass`.
+App runs at `http://localhost:3000` (Vite default). Sign in with any DummyJSON test user, e.g. `emilys` / `emilyspass`.
 
 **Scripts:**
 
