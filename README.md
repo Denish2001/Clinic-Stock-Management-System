@@ -4,8 +4,8 @@ A stock console for a clinic's supplies team, built against the [DummyJSON](http
 
 > **Fill-in-required:** anything wrapped in `[ ... ]` below needs a real value from your actual project before you submit. Search this file for `[` to find every spot.
 
-- **Live app:** `[deployed Netlify URL]`
-- **Repo:** `[GitHub repo URL]`
+- **Live app:** `[https://clinic-stock-console.netlify.app]`
+- **Repo:** `[https://github.com/Denish2001/Clinic-Stock-Management-System]`
 
 ---
 
