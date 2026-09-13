@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/UseAuth';
 
 export function LoginForm() {
   const [username, setUsername] = useState('emilys');
