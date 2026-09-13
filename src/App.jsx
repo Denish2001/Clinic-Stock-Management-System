@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './hooks/UseAuth';
 import Root from './routes/Root';
 import LoginPage from './routes/LoginPage';
 import StockListPage from './routes/StockListPage';
