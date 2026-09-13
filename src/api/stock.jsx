@@ -8,17 +8,18 @@ export const getProducts = async ({
   category,
   search,
 }) => {
-  let url = '';
+  let endpoint = '/products';
   if (search) {
-    url = `/products/search?q=${encodeURIComponent(search)}&limit=${limit}&skip=${skip}`;
-    if (sortBy) url += `&sortBy=${sortBy}&order=${order || 'asc'}`;
+    endpoint = `/products/search?q=${encodeURIComponent(search)}`;
   } else if (category) {
-    url = `/products/category/${encodeURIComponent(category)}?limit=${limit}&skip=${skip}`;
-    if (sortBy) url += `&sortBy=${sortBy}&order=${order || 'asc'}`;
-  } else {
-    url = `/products?limit=${limit}&skip=${skip}`;
-    if (sortBy) url += `&sortBy=${sortBy}&order=${order || 'asc'}`;
+    endpoint = `/products/category/${encodeURIComponent(category)}`;
   }
+
+  let url = `${endpoint}?limit=${limit}&skip=${skip}`;
+  if (sortBy) {
+    url += `&sortBy=${sortBy}&order=${order || 'asc'}`;
+  }
+
   const response = await apiClient.get(url);
   return response.data;
 };
