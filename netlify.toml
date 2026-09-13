@@ -2,9 +2,6 @@
   command = "yarn build"
   publish = "dist"
 
-# React Router client-side routing: without this, a direct visit or
-# reload on /items/123 returns a 404 from Netlify's static file server
-# instead of loading the app and letting the router handle it.
 [[redirects]]
   from = "/*"
   to = "/index.html"
