@@ -43,9 +43,9 @@ Layout: header (product name, signed-in user, sign out) above a two-column body 
 
 Server data, URL state and local UI state are treated as three different things, rather than one store trying to do all three jobs.
 
-**Server state — TanStack Query.** Products, categories and the signed-in user come from the API and are owned by TanStack Query rather than component state. It gives request de-duplication, background refetching, and built-in loading/error flags. Caveat: it does not fix race conditions in a search box by itself — the input still needs debouncing (below).
+**Server state — TanStack Query.** Products, categories and the signed-in user come from the API and are owned by TanStack Query rather than component state (`useAuth`, `useProducts`, `useCategories`, `useProduct`, `useUpdateProduct`). It gives request de-duplication, background refetching, and built-in loading/error flags. Caveat: it does not fix race conditions in a search box by itself — the input still needs debouncing (below).
 
-**URL state — search params.** Search text, category, sort, page and the open item id live in the URL:
+**URL state — search params.** Search text, category, sort, page and the open item id live in the URL, managed through a single `useUrlState` hook wrapping `useSearchParams`:
 
 ```
 /stock?search=paracetamol&category=medicine&sort=name&page=2
@@ -58,18 +58,18 @@ This is what makes a reload or a pasted link land a colleague on the same view. 
 
 ### 1.3 Data fetching, caching & invalidation
 
-- **Fetching:** components call hooks (`useProducts`, `useUpdateProduct`, …) which call a small API service layer, which calls `fetch`. Components never call `fetch` directly — keeps the Bearer token and base URL in one place and keeps hooks testable.
-- **Search:** debounced 300ms before it updates the URL and fires a request. Changing search or category also resets page to 1, so a user on page 10 is never left on an empty page 10 of a 2-page result.
-- **Caching:** product/category data is cached longer (relatively stable). Stock quantity is volatile — after a successful `PUT`, its cache entry is invalidated and refetched immediately.
-- **Mutations:** stock corrections are **not** optimistic. Save button shows a "saving" state and disables; list/detail update only once the server confirms. For an inventory count, correctness beats shaving a few hundred ms — an optimistic update that gets rejected means visibly rolling a number back in front of the user.
-- **Auth:** on a 401, the app attempts `/auth/refresh` once. If it succeeds, the original request is retried transparently. If it fails, the user is routed to login — but the URL (search, filter, page, open item) is preserved so signing back in returns them to where they were.
+- **Fetching:** components call hooks (`useAuth`, `useProducts`, `useCategories`, `useProduct`, `useUpdateProduct`, `useUrlState`, …) which call a small API service layer (`api/auth.js`, `api/stock.js`), which calls `apiClient` — a configured Axios instance, not `fetch`. Components never call Axios or `fetch` directly — keeps the Bearer token, base URL, and refresh logic in one place and keeps hooks testable.
+- **Search:** debounced before it updates the URL and fires a request (via `useUrlState`'s `setParams`, called from the search input). Changing search or category also resets page to 1, so a user on page 10 is never left on an empty page 10 of a 2-page result.
+- **Caching:** `staleTime` is tuned per resource — products 2 minutes, categories 10 minutes (relatively stable), signed-in user 5 minutes. Stock quantity is the most volatile piece of data, but it is **not** handled through cache invalidation — see Mutations below.
+- **Mutations:** stock corrections are **not optimistic** — the save button shows a "saving" state and disables; the list/detail only update once the server responds, so there's nothing to visibly roll back on failure. However, the update is _not_ applied via invalidate-and-refetch either. DummyJSON's `PUT /products/{id}` doesn't persist writes server-side — it just echoes back a merged object (1.8) — so refetching afterwards would immediately overwrite the just-saved value with the original, unchanged record and make a successful save look like it silently failed. `useUpdateProduct` instead writes the mutation's response directly into the cache: `setQueryData(['product', id], …)` for the detail view, plus a targeted patch of any cached `['products']` list pages so the stock list reflects the change without a refetch. This is a workaround for the mock API's specific limitation, not the general pattern this app would use against a real backend.
+- **Auth:** the response interceptor in `apiClient.js` attempts `POST /auth/refresh` once on a 401. If other requests fail with 401 while that refresh is already in flight, they're queued (`isRefreshing` flag + `failedQueue`) and retried with the new token once it resolves, rather than each firing its own refresh call. If refresh fails, or there's no refresh token to use, both tokens are cleared and the app hard-redirects via `window.location.href = '/login'`. **Current limitation:** this redirect does not preserve the return URL — it goes to a bare `/login`, not `/login?returnTo=...` — so a forced logout does not currently return the user to their search/filter/page/open-item view after signing back in (see Decision 3). Note also that this is a _hard_ redirect (full page reload), distinct from the manual "Sign out" action in `useAuth`, which uses React Router's `navigate('/login')` and keeps the SPA mounted.
 
 ### 1.4 Visual design
 
 - **Layout:** header + collapsible sidebar + content. Chosen over top-nav-only because category filtering is a primary action, and a persistent sidebar keeps it one click away.
 - **Spacing:** 4px/8px scale (4, 8, 16, 24, 32) for all padding/gaps, so touch targets stay consistent and nothing is hand-tuned per screen.
 - **Typography:** system font stack, one heading size, one body size — legible on a ward tablet without a font-loading dependency.
-- **Colour:** A restrained black-and-white palette is used to keep the interface simple, functional, and visually focused, following Dieter Rams’ principles of good design. Black is used for primary elements and text, while shades of grey provide hierarchy through secondary text, borders, and backgrounds. Colour is kept minimal and purposeful, with contrast between text and backgrounds designed to meet WCAG AA requirements.
+- **Colour:** A restrained black-and-white palette is used to keep the interface simple, functional, and visually focused, following Dieter Rams' principles of good design. Black is used for primary elements and text, while shades of grey provide hierarchy through secondary text, borders, and backgrounds. Colour is kept minimal and purposeful, with contrast between text and backgrounds designed to meet WCAG AA requirements.
 
 A deliberately plain visual language: a stock console for ward tablets over patchy wifi doesn't need a design system, just a small set of consistent, high-contrast, well-spaced components.
 
@@ -82,13 +82,13 @@ A deliberately plain visual language: a stock console for ward tablets over patc
 
 ### 1.6 Loading, empty and error states
 
-| State           | Behaviour                                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Loading         | Skeleton or spinner with a short label, e.g. "Loading stock…"                                                       |
-| Empty           | "No items match your search" with a way to clear filters                                                            |
-| Network / 500   | "Unable to load stock. Try again" with a retry button. Verified against `/http/500`                                 |
-| Session expired | Silent refresh attempt; on failure, "Session expired — please sign in again", routes to login, preserves return URL |
-| Save failed     | "Couldn't save this change. Try again"; input keeps the user's entered value                                        |
+| State           | Behaviour                                                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Loading         | Skeleton or spinner with a short label, e.g. "Loading stock…"                                                                                      |
+| Empty           | "No items match your search" with a way to clear filters                                                                                           |
+| Network / 500   | "Unable to load stock. Try again" with a retry button. Verified against `/http/500`                                                                |
+| Session expired | Silent refresh attempt; on failure, tokens are cleared and the app hard-redirects to `/login` (return URL not yet preserved — see 1.7, Decision 3) |
+| Save failed     | "Couldn't save this change. Try again"; input keeps the user's entered value                                                                       |
 
 ### 1.7 Decision log
 
@@ -100,21 +100,22 @@ Why: the brief specifically tests behaviour under a slow connection and rapid ty
 Alternative rejected: local component state, or persisting the view in localStorage.
 Why: the brief requires a reload and a link pasted on another machine to land on the same view. Only the URL is shared between machines.
 
-**Decision 3 — silent refresh + retry on 401, fall back to login only if refresh fails, preserving the return URL.**
-Alternative rejected: blank screen or hard reload on token expiry.
-Why: `expiresInMins: 1` means the token expires mid-session during testing. A user shouldn't lose a half-typed search or their place in the list because the token rolled over.
+**Decision 3 — silent refresh + queued retry on 401; hard redirect to `/login` on refresh failure.**
+Alternative rejected: blank screen or immediately dumping the user to login on any 401.
+Why: `expiresInMins: 1` means the token expires mid-session during testing, so a silent refresh-and-retry avoids interrupting the user for routine token rollover. Concurrent 401s are queued behind a single in-flight refresh rather than each firing its own refresh call.
+**Known gap:** the redirect on refresh failure is currently a hard `window.location.href = '/login'`, which does not preserve the return URL. Because search/filter/sort/page/open-item all live in the URL (Decision 2), a full fix is small — append the current path+params as a `returnTo` query param before redirecting, and read it back after login — but it isn't implemented yet.
 
-**Decision 4 — no optimistic UI for stock corrections.**
-Alternative rejected: optimistic update with rollback on failure.
-Why: a rejected optimistic update means visibly reverting a stock number in front of the user — worse than a short, honest wait for an inventory count.
+**Decision 4 — no optimistic UI for stock corrections; cache updated from the mutation response, not by invalidation.**
+Alternative rejected: optimistic update with rollback on failure; or the more conventional invalidate-and-refetch after a successful save.
+Why: a rejected optimistic update means visibly reverting a stock number in front of the user — worse than a short, honest wait for an inventory count. Invalidate-and-refetch was also rejected once built specifically against DummyJSON, because the API doesn't persist writes: a refetch after save would silently overwrite the new value with the old one and make a real save look like a failed one. `useUpdateProduct` instead writes the server's mutation response straight into the relevant query cache entries.
 
-**Decision 5 — debounce search 300ms, reset page to 1 on search/category change.**
+**Decision 5 — debounce search, reset page to 1 on search/category change.**
 Alternative rejected: firing a request per keystroke; leaving page number untouched on filter change.
 Why: without debouncing, fast typing sends requests for text already replaced. Without resetting the page, a filter change can strand the user on a page number that no longer exists.
 
 ### 1.8 Known limitation of the API
 
-DummyJSON is a general-purpose product API, not a real inventory system: no concurrency control (no version/ETag/`updatedAt` to detect two people editing the same item), and writes aren't actually persisted server-side. The app is built against it as required, and this limitation is documented rather than simulated — there's no fake optimistic-locking layer pretending the API guarantees something it doesn't.
+DummyJSON is a general-purpose product API, not a real inventory system: no concurrency control (no version/ETag/`updatedAt` to detect two people editing the same item), and writes aren't actually persisted server-side — `PUT /products/{id}` just echoes back a merged object. The app is built against it as required, and this limitation is documented rather than simulated — there's no fake optimistic-locking layer pretending the API guarantees something it doesn't. It does, however, directly shape the caching strategy in 1.3/Decision 4: mutation results are written into the cache rather than triggering a refetch, precisely because a refetch against this API would return stale data.
 
 ---
 
@@ -124,10 +125,10 @@ DummyJSON is a general-purpose product API, not a real inventory system: no conc
 
 **Implemented:**
 
-- Sign-in with `expiresInMins: 1`, silent refresh-and-retry on 401, return-URL preservation on hard logout.
+- Sign-in with `expiresInMins: 1`, silent refresh-and-retry on 401 with request queueing for concurrent failures, hard redirect to `/login` on refresh failure (return-URL preservation not yet implemented — see Decision 3).
 - Paginated stock list with search, category filter, sort control.
 - Item detail at `/items/:id`, shareable and reload-safe.
-- Stock correction via `PUT /products/{id}` with non-optimistic save state.
+- Stock correction via `PUT /products/{id}`, non-optimistic save state, cache updated from the mutation response rather than refetched.
 - Loading / empty / error states on every data-loading screen, verified against `?delay=2000` and `/http/500`.
 - Full keyboard operability and 360px-wide layout.
 
@@ -139,7 +140,7 @@ DummyJSON is a general-purpose product API, not a real inventory system: no conc
 - **Editor config:** `.editorconfig` committed.
 - **Tests:** Vitest 1.3. `["utils.test.js - Debounce — cancels a pending call when a new value arrives within the debounce window"]`
 
-**Note on the mock API:** see [1.8](#18-known-limitation-of-the-api) — no concurrency control, writes not persisted. Handled by documenting the limitation rather than building a fake optimistic-locking layer.
+**Note on the mock API:** see [1.8](#18-known-limitation-of-the-api) — no concurrency control, writes not persisted. Handled by documenting the limitation, and by writing mutation responses directly into the query cache instead of building a fake optimistic-locking layer.
 
 ---
 
@@ -179,7 +180,7 @@ DummyJSON is a general-purpose product API, not a real inventory system: no conc
    - **Visual design:** I chose a minimalist, black-and-white theme (Dieter Rams-influenced) rather than a more colourful UI, because colour shouldn't carry clinical meaning in this context — status colours should be the exception, not the norm. This was a judgment call about the domain, not a technical one, so I didn't need AI input on it.
    - **Routing strategy:** I chose `BrowserRouter` over `HashRouter` on my own, specifically because I knew I was deploying to Netlify (which supports SPA redirect rules) rather than GitHub Pages (which historically needs hash routing to avoid 404s on refresh). This was a deployment-target-specific call I was confident about without checking.
 
-6. **One part of my codebase I'd struggle to defend, and why:** `apiClient.js` (the Axios instance with request/response interceptors for auth and token refresh). I can defend the first half — attaching the Bearer token to outgoing requests — but not the refresh-queueing mechanism in full: the `isRefreshing` flag, the `failedQueue` array, and `processQueue` exist to handle multiple requests failing with 401 at the same time while a single refresh is in flight, but I know _what_ this does more confidently than _how_ it correctly sequences and resolves those queued promises. I'd want to trace through it line by line before I'd call it fully mine.
+6. **One part of my codebase I'd struggle to defend, and why:** `apiClient.js` (the Axios instance with request/response interceptors for auth and token refresh). I can defend the first half — attaching the Bearer token to outgoing requests — but not the refresh-queueing mechanism in full: the `isRefreshing` flag, the `failedQueue` array, and `processQueue` exist to handle multiple requests failing with 401 at the same time while a single refresh is in flight, but I know _what_ this does more confidently than _how_ it correctly sequences and resolves those queued promises. I'd want to trace through it line by line before I'd call it fully mine. I'd also flag that its redirect-to-login path doesn't currently preserve the return URL, unlike what the design doc originally claimed.
 
 **Time spent (honest, not rounded down):** ~8 hours, spread across four days (roughly 2 hours/day).
 
