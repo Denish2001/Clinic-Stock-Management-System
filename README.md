@@ -146,7 +146,7 @@ DummyJSON is a general-purpose product API, not a real inventory system: no conc
 
 ## 3. Deployment & CI/CD
 
-- **Live URL:** `[Netlify URL]`
+- **Live URL:** `[https://clinic-stock-console.netlify.app]`
 - **Deploy branch:** `main` (deploys automatically on merge)
 - **CI provider:** GitHub Actions (`.github/workflows/ci.yml`)
 
