@@ -43,9 +43,7 @@ App
 
 │   ├─ StockList      (StockRow / StockCard, Pagination)
 
-│   ├─ StockDetails
-
-│   └─ StockEditor    (quantity form, save/cancel)
+│   |_ StockDetails   (edit quantity, save/cancel)
 
 └─ Shared      (Button, LoadingState, ErrorState, EmptyState, ConfirmDialog)
 ```
