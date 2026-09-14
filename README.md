@@ -69,7 +69,7 @@ This is what makes a reload or a pasted link land a colleague on the same view. 
 - **Layout:** header + collapsible sidebar + content. Chosen over top-nav-only because category filtering is a primary action, and a persistent sidebar keeps it one click away.
 - **Spacing:** 4px/8px scale (4, 8, 16, 24, 32) for all padding/gaps, so touch targets stay consistent and nothing is hand-tuned per screen.
 - **Typography:** system font stack, one heading size, one body size — legible on a ward tablet without a font-loading dependency.
-- **Colour:** small palette — one accent colour for actions/links, neutral greys for text/borders, status colours (green/amber/red) used only for stock/connection status. All text/background pairs meet WCAG AA (4.5:1).
+- **Colour:** A restrained black-and-white palette is used to keep the interface simple, functional, and visually focused, following Dieter Rams’ principles of good design. Black is used for primary elements and text, while shades of grey provide hierarchy through secondary text, borders, and backgrounds. Colour is kept minimal and purposeful, with contrast between text and backgrounds designed to meet WCAG AA requirements.
 
 A deliberately plain visual language: a stock console for ward tablets over patchy wifi doesn't need a design system, just a small set of consistent, high-contrast, well-spaced components.
 
@@ -137,7 +137,7 @@ DummyJSON is a general-purpose product API, not a real inventory system: no conc
 - **Linter:** ESLint 9 (flat config, `eslint.config.js`) — `@eslint/js` recommended rules + `eslint-plugin-react-hooks` recommended rules + `eslint-plugin-react-refresh` (Vite Fast Refresh safety, allowing constant exports alongside components). One rule dialed back from its recommended default: `no-unused-vars` is set to `'warn'` rather than `'error'` — destructured props (e.g. from route params or query results) sometimes go unused during active development, and an error there was blocking builds for a case that isn't a real bug.
 - **Commits:** Conventional Commits enforced by `@commitlint/cli` + `@commitlint/config-conventional`, wired to a `commit-msg` hook via Husky 9. `lint-staged` also runs Prettier and `eslint --fix` on staged `.js`/`.jsx`/`.json`/`.md`/`.css` files pre-commit.
 - **Editor config:** `.editorconfig` committed.
-- **Tests:** Vitest 1.3. `[List the actual test files and what each one checks, e.g. "useDebounce.test.js — cancels a pending call when a new value arrives within the debounce window", "useUrlState.test.js — resets page to 1 when category changes", "apiClient.test.js — retries the original request once after a successful token refresh".]`
+- **Tests:** Vitest 1.3. `["utils.test.js - Debounce — cancels a pending call when a new value arrives within the debounce window"]`
 
 **Note on the mock API:** see [1.8](#18-known-limitation-of-the-api) — no concurrency control, writes not persisted. Handled by documenting the limitation rather than building a fake optimistic-locking layer.
 
